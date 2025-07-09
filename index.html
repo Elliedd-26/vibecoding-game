@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Who's That Villager? - Memory Game</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;600;700;800&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Nunito', sans-serif;
+            background: linear-gradient(135deg, #88c9a1 0%, #7cc9c3 50%, #8eeebc 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .title {
+            font-family: 'Nunito', sans-serif;
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: #017c74;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .stats {
+            display: flex;
+            gap: 30px;
+            justify-content: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .stat-item {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 10px 20px;
+            border-radius: 25px;
+            border: 3px solid #017c74;
+            font-weight: 600;
+            color: #017c74;
+            min-width: 120px;
+        }
+
+        .game-board {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .card {
+            width: 120px;
+            height: 120px;
+            position: relative;
+            cursor: pointer;
+            transform-style: preserve-3d;
+            transition: transform 0.6s;
+            margin: 0 auto;
+            z-index: 1;
+            perspective: 1000px;
+        }
+
+        .card.flipped {
+            transform: rotateY(180deg);
+            z-index: 2;
+        }
+
+        .game-board .card.matched {
+            background: linear-gradient(135deg, #f7d359, #fcca64) !important;
+            border: 3px solid #e6c200 !important;
+            box-shadow: 0 0 20px rgba(247, 211, 89, 0.6) !important;
+            overflow: hidden;
+            z-index: 1;
+        }
+
+        .game-board .card.matched .card-back {
+            background: linear-gradient(135deg, #f7d359, #fcca64) !important;
+        }
+
+        .game-board .card.matched .leaf-placeholder {
+            background: rgba(255, 255, 255, 0.3) !important;
+            border-color: rgba(255, 255, 255, 0.8) !important;
+            color: rgba(255, 255, 255, 0.9) !important;
+        }
+
+        .card-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            border: 3px solid #017c74;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            top: 0;
+            left: 0;
+        }
+
+        .card-back {
+            background: linear-gradient(135deg, #a4d4a2, #68b893);
+            color: white;
+            font-size: 2rem;
+            position: relative;
+        }
+
+        .leaf-placeholder {
+            width: 50px;
+            height: 50px;
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px dashed rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.7);
+            text-align: center;
+            line-height: 1;
+        }
+
+        .leaf-image {
+            width: 50px;
+            height: 50px;
+            object-fit: contain;
+        }
+
+        .villager-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 50%;
+        }
+
+        .card-front {
+            background: #f8eebc;
+            transform: rotateY(180deg);
+            flex-direction: column;
+            font-size: 0.9rem;
+            text-align: center;
+            padding: 10px;
+        }
+
+        .villager-image {
+            width: 60px;
+            height: 60px;
+            background: #ddd;
+            border-radius: 50%;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            color: #666;
+            border: 2px solid #017c74;
+        }
+
+        .villager-name {
+            color: #017c74;
+            font-weight: 700;
+        }
+
+        .rarity-normal { 
+            border-color: #017c74; 
+        }
+        
+        .rarity-special { 
+            border-color: #f7d359; 
+            box-shadow: 0 0 15px rgba(247, 211, 89, 0.5); 
+        }
+
+        /* Special character effects - also yellow theme */
+        .game-board .card.rarity-special.matched {
+            animation: specialGlow 2s infinite alternate;
+            background: linear-gradient(135deg, #f7d359, #fcca64, #ff9f43) !important;
+            box-shadow: 0 0 25px rgba(247, 211, 89, 0.8) !important;
+        }
+
+        @keyframes specialGlow {
+            0% { box-shadow: 0 0 25px rgba(247, 211, 89, 0.8) !important; }
+            100% { box-shadow: 0 0 35px rgba(247, 211, 89, 1), 0 0 50px rgba(255, 159, 67, 0.5) !important; }
+        }
+
+        .friendship-display {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 15px;
+            border-radius: 15px;
+            margin-top: 20px;
+            border: 3px solid #017c74;
+            max-width: 600px;
+            text-align: center;
+        }
+
+        .friendship-title {
+            font-weight: 700;
+            color: #017c74;
+            margin-bottom: 10px;
+        }
+
+        .friendship-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .friendship-item {
+            background: #e8f5e8;
+            padding: 5px 10px;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            color: #017c74;
+        }
+
+        .message {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            border: 4px solid #017c74;
+            text-align: center;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            z-index: 1000;
+            max-width: 400px;
+            font-size: 1.1rem;
+            color: #017c74;
+        }
+
+        .message.hidden {
+            display: none;
+        }
+
+        .message-emoji {
+            font-size: 3rem;
+            margin-bottom: 15px;
+        }
+
+        .reset-btn {
+            background: #017c74;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 25px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: all 0.3s;
+        }
+
+        .reset-btn:hover {
+            background: #015a54;
+            transform: translateY(-2px);
+        }
+
+        .quote-bubble {
+            position: fixed;
+            background: white;
+            padding: 15px 20px;
+            border-radius: 20px;
+            border: 3px solid #017c74;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+            max-width: 300px;
+            text-align: center;
+            z-index: 999;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.3s;
+            font-weight: 600;
+            color: #017c74;
+        }
+
+        .quote-bubble.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .quote-bubble::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 10px solid transparent;
+            border-right: 10px solid transparent;
+            border-top: 10px solid white;
+        }
+
+        @media (max-width: 768px) {
+            .game-board {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 10px;
+            }
+            
+            .card {
+                width: 100px;
+                height: 100px;
+            }
+            
+            .title {
+                font-size: 2rem;
+            }
+            
+            .stats {
+                gap: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1 class="title">🍃 Who's That Villager? 🍃</h1>
+        <div class="stats">
+            <div class="stat-item">Score: <span id="score">0</span></div>
+            <div class="stat-item">Moves: <span id="moves">0</span></div>
+            <div class="stat-item">Matches: <span id="matches">0</span>/8</div>
+        </div>
+    </div>
+
+    <div class="game-board" id="gameBoard"></div>
+
+    <div class="friendship-display">
+        <div class="friendship-title">🌟 Friendship Points 🌟</div>
+        <div class="friendship-list" id="friendshipList"></div>
+    </div>
+
+    <button class="reset-btn" onclick="resetGame()">🔄 New Game</button>
+
+    <div class="message hidden" id="winMessage">
+        <div class="message-emoji">🎉</div>
+        <div id="winText"></div>
+        <button class="reset-btn" onclick="resetGame()">Play Again!</button>
+    </div>
+
+    <div class="quote-bubble" id="quoteBubble"></div>
+
+    <script>
+        const villagers = [
+            { name: 'KK Slider', rarity: 'special', quote: 'Music brings us together, dude!' },
+            { name: 'Isabelle', rarity: 'special', quote: 'Mayor! I missed you so much!' },
+            { name: 'Tom Nook', rarity: 'special', quote: 'Yes, yes! Business is good!' },
+            { name: 'Luna', rarity: 'special', quote: 'Sweet dreams await you...' },
+            { name: 'Cherry', rarity: 'normal', quote: 'Hey there, rock on!' },
+            { name: 'Bea', rarity: 'normal', quote: 'Such a lovely day, isn\'t it?' },
+            { name: 'Ellie', rarity: 'normal', quote: 'I\'m having so much fun!' },
+            { name: 'Gigi', rarity: 'normal', quote: 'Fabulous to see you, darling!' }
+        ];
+
+        let gameState = {
+            cards: [],
+            flippedCards: [],
+            matchedPairs: 0,
+            moves: 0,
+            score: 0,
+            friendship: {}
+        };
+
+        function initializeFriendship() {
+            villagers.forEach(villager => {
+                gameState.friendship[villager.name] = 0;
+            });
+        }
+
+        function createGameBoard() {
+            const board = document.getElementById('gameBoard');
+            board.innerHTML = '';
+            
+            // Create pairs of cards
+            const cardPairs = [...villagers, ...villagers];
+            gameState.cards = shuffleArray(cardPairs);
+            
+            gameState.cards.forEach((villager, index) => {
+                const card = document.createElement('div');
+                card.className = `card rarity-${villager.rarity}`;
+                card.dataset.index = index;
+                card.dataset.villager = villager.name;
+                
+                // Create image filename from villager name
+                const imageFilename = villager.name.toLowerCase().replace(/\s+/g, '-') + '.webp';
+                const leafImagePath = './images/leaf.png';
+                const villagerImagePath = `./images/villagers/${imageFilename}`;
+                
+                card.innerHTML = `
+                    <div class="card-face card-back">
+                        <img src="${leafImagePath}" alt="Leaf" class="leaf-image" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                        <div class="leaf-placeholder" style="display: none;">LEAF<br>PNG</div>
+                    </div>
+                    <div class="card-face card-front">
+                        <div class="villager-image">
+                            <img src="${villagerImagePath}" alt="${villager.name}" onerror="this.style.display='none'; this.parentElement.innerHTML='IMG';">
+                        </div>
+                        <div class="villager-name">${villager.name}</div>
+                    </div>
+                `;
+                
+                card.addEventListener('click', () => flipCard(index));
+                board.appendChild(card);
+            });
+        }
+
+        function shuffleArray(array) {
+            const shuffled = [...array];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+            return shuffled;
+        }
+
+        function flipCard(index) {
+            if (gameState.flippedCards.length >= 2) return;
+            
+            const card = document.querySelector(`[data-index="${index}"]`);
+            if (card.classList.contains('flipped') || card.classList.contains('matched')) return;
+            
+            card.classList.add('flipped');
+            gameState.flippedCards.push(index);
+            
+            // Update friendship when flipping a card (+1 for interaction)
+            const villager = gameState.cards[index];
+            gameState.friendship[villager.name]++;
+            updateFriendshipDisplay();
+            
+            if (gameState.flippedCards.length === 2) {
+                gameState.moves++;
+                updateStats();
+                setTimeout(checkMatch, 1000);
+            }
+        }
+
+        function checkMatch() {
+            const [index1, index2] = gameState.flippedCards;
+            const card1 = document.querySelector(`[data-index="${index1}"]`);
+            const card2 = document.querySelector(`[data-index="${index2}"]`);
+            const villager1 = gameState.cards[index1];
+            const villager2 = gameState.cards[index2];
+            
+            if (villager1.name === villager2.name) {
+                // Match found! Turn cards yellow instead of flipping
+                card1.classList.remove('flipped');
+                card1.classList.add('matched');
+                card2.classList.remove('flipped');
+                card2.classList.add('matched');
+                
+                console.log(`Matched ${villager1.name}! Cards turned yellow.`);
+                
+                gameState.matchedPairs++;
+                
+                // Update score based on rarity
+                const points = getRarityPoints(villager1.rarity);
+                gameState.score += points;
+                
+                // Bonus friendship for successful match (+2 more)
+                gameState.friendship[villager1.name] += 2;
+                
+                // Show quote
+                showQuote(villager1.quote);
+                
+                // Check for win
+                if (gameState.matchedPairs === villagers.length) {
+                    setTimeout(showWinMessage, 1500);
+                }
+            } else {
+                // No match - flip cards back to leaf side
+                card1.classList.remove('flipped');
+                card2.classList.remove('flipped');
+                
+                console.log(`No match. Cards flipped back.`);
+                
+                // Small penalty for wrong match (-1 for each villager)
+                gameState.friendship[villager1.name] = Math.max(0, gameState.friendship[villager1.name] - 1);
+                gameState.friendship[villager2.name] = Math.max(0, gameState.friendship[villager2.name] - 1);
+            }
+            
+            gameState.flippedCards = [];
+            updateStats();
+            updateFriendshipDisplay();
+        }
+
+        function getRarityPoints(rarity) {
+            switch (rarity) {
+                case 'normal': return 1;
+                case 'special': return 3;
+                default: return 1;
+            }
+        }
+
+        function showQuote(quote) {
+            const quoteBubble = document.getElementById('quoteBubble');
+            quoteBubble.textContent = quote;
+            quoteBubble.style.top = '20%';
+            quoteBubble.style.left = '50%';
+            quoteBubble.classList.add('show');
+            
+            setTimeout(() => {
+                quoteBubble.classList.remove('show');
+            }, 2000);
+        }
+
+        function updateStats() {
+            document.getElementById('score').textContent = gameState.score;
+            document.getElementById('moves').textContent = gameState.moves;
+            document.getElementById('matches').textContent = gameState.matchedPairs;
+        }
+
+        function updateFriendshipDisplay() {
+            const friendshipList = document.getElementById('friendshipList');
+            friendshipList.innerHTML = '';
+            
+            Object.entries(gameState.friendship)
+                .sort((a, b) => b[1] - a[1])
+                .forEach(([name, points]) => {
+                    const item = document.createElement('div');
+                    item.className = 'friendship-item';
+                    item.textContent = `${name}: ${points}💚`;
+                    friendshipList.appendChild(item);
+                });
+        }
+
+        function showWinMessage() {
+            const winMessage = document.getElementById('winMessage');
+            const winText = document.getElementById('winText');
+            
+            // Find best friend
+            const bestFriend = Object.entries(gameState.friendship)
+                .reduce((a, b) => a[1] > b[1] ? a : b);
+            
+            winText.innerHTML = `
+                <h2>Congratulations! 🎊</h2>
+                <p>You completed the game in ${gameState.moves} moves!</p>
+                <p>Final Score: ${gameState.score} points</p>
+                <p><strong>Your best friend is ${bestFriend[0]} with ${bestFriend[1]} friendship points!</strong></p>
+                <p>You've formed wonderful friendships with all the villagers! 🌟</p>
+            `;
+            
+            winMessage.classList.remove('hidden');
+        }
+
+        function resetGame() {
+            gameState = {
+                cards: [],
+                flippedCards: [],
+                matchedPairs: 0,
+                moves: 0,
+                score: 0,
+                friendship: {}
+            };
+            
+            document.getElementById('winMessage').classList.add('hidden');
+            initializeFriendship();
+            createGameBoard();
+            updateStats();
+            updateFriendshipDisplay();
+        }
+
+        // Initialize game
+        initializeFriendship();
+        createGameBoard();
+        updateStats();
+        updateFriendshipDisplay();
+    </script>
+</body>
+</html>
